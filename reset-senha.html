@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Nova Senha - EEMTI Dragão do Mar</title>
+    <link rel="icon" type="image/png" href="imagem1.png">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --bg: #0f172a; --card: #1e293b; --primary: #8b5cf6; --text: #f8fafc; --text-dim: #94a3b8; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: sans-serif; background: radial-gradient(circle at top right, #1e293b, #0f172a); height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; color: var(--text); }
+        .login-card { background: var(--card); width: 100%; max-width: 380px; padding: 40px 30px; border-radius: 24px; text-align: center; border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        .logo { width: 80px; margin-bottom: 20px; }
+        .input-group { position: relative; margin-bottom: 15px; width: 100%; }
+        .input-group i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--text-dim); }
+        input { width: 100%; padding: 14px 15px 14px 45px; background: #0f172a; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: white; outline: none; font-size: 16px; }
+        .btn-entrar { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; }
+        .btn-entrar:hover { background: #7c3aed; }
+        #msg { margin-top: 15px; font-size: 14px; font-weight: 500; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <img src="imagem1.png" class="logo">
+        <h1>Nova Senha</h1>
+        <p style="color: var(--text-dim); margin-bottom: 25px; font-size: 14px;">Digite sua nova senha abaixo</p>
+
+        <div class="input-group">
+            <i class="fas fa-lock"></i>
+            <input id="novaSenha" type="password" placeholder="Nova Senha">
+        </div>
+        <div class="input-group">
+            <i class="fas fa-check-double"></i>
+            <input id="confirmaSenha" type="password" placeholder="Confirmar Senha">
+        </div>
+
+        <button class="btn-entrar" onclick="atualizarSenha()">ATUALIZAR SENHA</button>
+        <p id="msg"></p>
+    </div>
+
+    <script>
+        const client = supabase.createClient("SUA_URL", "SUA_KEY");
+
+        async function atualizarSenha() {
+            const senha = document.getElementById("novaSenha").value;
+            const confirma = document.getElementById("confirmaSenha").value;
+            const msg = document.getElementById("msg");
+
+            if(senha.length < 6) { msg.style.color = "#f87171"; msg.innerText = "A senha deve ter no mínimo 6 caracteres."; return; }
+            if(senha !== confirma) { msg.style.color = "#f87171"; msg.innerText = "As senhas não coincidem!"; return; }
+
+            const { error } = await client.auth.updateUser({ password: senha });
+
+            if(error) {
+                msg.style.color = "#f87171";
+                msg.innerText = error.message;
+            } else {
+                alert("Senha alterada com sucesso!");
+                window.location.href = "index.html";
+            }
+        }
+    </script>
+</body>
+</html>

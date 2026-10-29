@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Relatórios - EEMTI Dragão do Mar</title>
+    <link rel="icon" type="image/png" href="imagem1.png">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --primary: #8b5cf6;
+            --primary-hover: #7c3aed;
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+            --success: #22c55e;
+            --danger: #f87171;
+            --input-bg: #0f172a;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            background: radial-gradient(circle at top right, #1e293b, #0f172a);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+        }
+
+        .nav-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            max-width: 600px;
+            width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .btn-nav {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text);
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-sair { color: var(--danger); }
+
+        .main-card {
+            background: var(--card);
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 25px;
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            text-align: center;
+            flex-grow: 1;
+        }
+
+        .logo-sm { width: 60px; margin-bottom: 10px; filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.3)); }
+        h2 { font-size: 20px; font-weight: 800; margin-bottom: 20px; }
+
+        select {
+            width: 100%;
+            padding: 14px;
+            background: var(--input-bg);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            margin-bottom: 15px;
+            outline: none;
+        }
+
+        .btn-pdf {
+            width: 100%;
+            padding: 15px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: 0.3s;
+        }
+
+        .btn-pdf:hover { background: var(--primary-hover); transform: translateY(-2px); }
+
+        #resumo {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .resumo-item {
+            background: var(--input-bg);
+            padding: 15px 5px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .resumo-item span { display: block; font-size: 1.5rem; font-weight: 800; margin-top: 5px; }
+
+        .table-wrapper {
+            background: var(--input-bg);
+            border-radius: 15px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th { background: rgba(255, 255, 255, 0.05); color: var(--text-dim); padding: 12px; text-align: left; font-weight: 600; }
+        td { padding: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.03); text-align: left; }
+
+        .status-ok { color: var(--success); font-weight: bold; }
+        .status-no { color: var(--danger); font-weight: bold; }
+
+        footer { margin-top: 40px; text-align: center; color: var(--text-dim); font-size: 11px; padding-bottom: 15px; }
+        footer b { color: var(--text); }
+        footer i { color: var(--primary); margin: 0 3px; }
+    </style>
+</head>
+<body>
+
+    <div class="nav-top">
+        <button class="btn-nav" onclick="voltar()"><i class="fas fa-arrow-left"></i> Voltar</button>
+        <button class="btn-nav btn-sair" onclick="sair()"><i class="fas fa-sign-out-alt"></i> Sair</button>
+    </div>
+
+    <div class="main-card">
+        <img src="imagem1.png" class="logo-sm">
+        <h2>Relatório de Alunos</h2>
+
+        <select id="turma" onchange="carregar()">
+            <option value="">Selecione a turma</option>
+            <option>1A</option><option>1B</option><option>1C</option><option>1D</option>
+            <option>2A</option><option>2B</option><option>2C</option><option>2D</option>
+            <option>3A</option><option>3B</option><option>3C</option>
+        </select>
+
+        <button class="btn-pdf" onclick="gerarPDF()">
+            <i class="fas fa-file-pdf"></i> GERAR PDF DA TURMA
+        </button>
+
+        <div id="resumo">
+            <div class="resumo-item">Total <span id="total">0</span></div>
+            <div class="resumo-item" style="color: var(--success);">Fez <span id="fez">0</span></div>
+            <div class="resumo-item" style="color: var(--danger);">Não fez <span id="nao">0</span></div>
+        </div>
+
+        <div class="table-wrapper">
+            <table id="tabela">
+                <thead>
+                    <tr>
+                        <th>Aluno</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <footer>
+        <p><i class="fas fa-school"></i> <b>EEMTI DRAGÃO DO MAR - L.E.I.</b></p>
+        <p><i class="fas fa-code"></i> By <b>D.S.Montenegro</b> <i class="fas fa-bolt"></i></p>
+    </footer>
+
+<script>
+    const SUPABASE_URL = "https://fwemutmkbvnriqxxufhx.supabase.co"
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3ZW11dG1rYnZucmlxeHh1Zmh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNjM2MzMsImV4cCI6MjA4ODczOTYzM30.HCXIoI_r7_yGJntTPIizhrP4apxXV3Ahd6Jk2AkvKas"
+    const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+
+    function voltar() { window.location.href = "painel.html"; }
+    async function sair() { await client.auth.signOut(); window.location.href = "index.html"; }
+
+    async function carregar(){
+        const turma = document.getElementById("turma").value
+        if(!turma) return
+
+        const { data, error } = await client
+            .from("provas_alunos")
+            .select("*")
+            .eq("turma", turma)
+            .order('nome', { ascending: true })
+
+        if(error){ alert("Erro: " + error.message); return }
+
+        const tbody = document.querySelector("#tabela tbody")
+        tbody.innerHTML = ""
+        let total = 0, fez = 0, nao = 0
+
+        data.forEach(aluno => {
+            total++
+            aluno.fez_prova ? fez++ : nao++
+            const status = aluno.fez_prova
+                ? `<span class="status-ok"><i class="fas fa-check"></i> Fez</span>`
+                : `<span class="status-no"><i class="fas fa-times"></i> Não</span>`
+            tbody.innerHTML += `<tr><td>${aluno.nome}</td><td>${status}</td></tr>`
+        })
+
+        document.getElementById("total").innerText = total
+        document.getElementById("fez").innerText   = fez
+        document.getElementById("nao").innerText   = nao
+    }
+
+    async function gerarPDF(){
+        const turma = document.getElementById("turma").value
+        if(!turma){ alert("Selecione uma turma"); return }
+
+        const { data, error } = await client
+            .from("provas_alunos")
+            .select("*")
+            .eq("turma", turma)
+            .order('nome', { ascending: true })
+
+        if(error || !data || data.length === 0){ alert("Nenhum dado encontrado."); return }
+
+        const { jsPDF } = window.jspdf
+
+        // ── Constantes de layout (mm) ─────────────────────────────────────
+        const PAGE_W   = 210
+        const PAGE_H   = 297
+        const MARGIN_T = 20    // topo disponível (abaixo do cabeçalho)
+        const MARGIN_B = 10
+        const MARGIN_L = 8
+        const COL_W    = 92    // largura de cada coluna de conteúdo
+        const COL_GAP  = 10    // espaço entre as duas colunas
+        const COL2_X   = MARGIN_L + COL_W + COL_GAP
+        const BLOCO_H  = 26    // altura de cada bloco aluno (nome + barcode + matrícula)
+        const MAX_ROWS = 10    // 10 linhas por coluna → 20 por página
+
+        // ── Cabeçalho de página ───────────────────────────────────────────
+        function cabecalho(pagNum, totalPag){
+            doc.setFillColor(30, 41, 59)
+            doc.rect(0, 0, PAGE_W, 14, 'F')
+
+            doc.setFontSize(8)
+            doc.setTextColor(180, 180, 200)
+            doc.setFont(undefined, 'bold')
+            doc.text('EEMTI DRAGÃO DO MAR  ·  L.E.I.', MARGIN_L, 9)
+
+            doc.setFont(undefined, 'normal')
+            doc.setTextColor(160, 160, 180)
+            doc.text('Turma: ' + turma, PAGE_W / 2, 9, { align: 'center' })
+
+            doc.setFontSize(7)
+            doc.setTextColor(120, 120, 140)
+            doc.text('Pág. ' + pagNum + ' / ' + totalPag, PAGE_W - MARGIN_L, 9, { align: 'right' })
+
+            doc.setDrawColor(80, 80, 110)
+            doc.setLineWidth(0.25)
+            doc.line(MARGIN_L, 14, PAGE_W - MARGIN_L, 14)
+        }
+
+        // ── Linha vertical divisória entre colunas ────────────────────────
+        function linhaDivisoria(){
+            doc.setDrawColor(200, 200, 215)
+            doc.setLineWidth(0.2)
+            const midX = MARGIN_L + COL_W + COL_GAP / 2
+            doc.line(midX, MARGIN_T - 2, midX, PAGE_H - MARGIN_B)
+        }
+
+        // ── Bloco individual de aluno ─────────────────────────────────────
+        function blocoAluno(aluno, x, y){
+            // — Nome —
+            doc.setFontSize(8)
+            doc.setFont(undefined, 'bold')
+            doc.setTextColor(30, 30, 30)
+            let nome = (aluno.nome || '').toUpperCase()
+            // Truncar se exceder largura da coluna
+            while(doc.getTextWidth(nome) > COL_W - 1 && nome.length > 1)
+                nome = nome.slice(0, -1)
+            if((aluno.nome || '').toUpperCase() !== nome) nome += '…'
+            doc.text(nome, x, y)
+
+            // — Código de barras —
+            const canvas = document.createElement('canvas')
+            JsBarcode(canvas, String(aluno.codigo_barras), {
+                format: 'CODE128',
+                width: 2,
+                height: 48,
+                displayValue: false,
+                margin: 0,
+                background: '#ffffff'
+            })
+            const bcW = COL_W        // barcode ocupa toda a largura da coluna
+            const bcH = 11           // altura em mm
+            doc.addImage(canvas.toDataURL('image/png'), 'PNG', x, y + 2, bcW, bcH)
+
+            // — Matrícula (número abaixo do barcode) —
+            doc.setFontSize(7.5)
+            doc.setFont(undefined, 'normal')
+            doc.setTextColor(60, 60, 60)
+            doc.text(String(aluno.codigo_barras), x + bcW / 2, y + 2 + bcH + 4, { align: 'center' })
+
+            // — Linha separadora inferior do bloco —
+            doc.setDrawColor(215, 215, 225)
+            doc.setLineWidth(0.15)
+            doc.line(x, y + BLOCO_H - 1, x + COL_W, y + BLOCO_H - 1)
+        }
+
+        // ── Geração do documento ──────────────────────────────────────────
+        const doc      = new jsPDF({ unit: 'mm', format: 'a4' })
+        const totalPag = Math.ceil(data.length / (MAX_ROWS * 2))
+        let pagAtual   = 1
+
+        cabecalho(pagAtual, totalPag)
+        linhaDivisoria()
+
+        data.forEach((aluno, idx) => {
+            // Posição dentro da página (0..19)
+            const posNaPagina = idx % (MAX_ROWS * 2)
+            const coluna      = Math.floor(posNaPagina / MAX_ROWS)  // 0 = esq, 1 = dir
+            const linha       = posNaPagina % MAX_ROWS               // 0..9
+            const x           = coluna === 0 ? MARGIN_L : COL2_X
+            const y           = MARGIN_T + linha * BLOCO_H
+
+            // Virar página a cada 20 alunos
+            if(idx > 0 && posNaPagina === 0){
+                doc.addPage()
+                pagAtual++
+                cabecalho(pagAtual, totalPag)
+                linhaDivisoria()
+            }
+
+            blocoAluno(aluno, x, y)
+        })
+
+        doc.save('Etiquetas_' + turma + '.pdf')
+    }
+</script>
+
+</body>
+</html>

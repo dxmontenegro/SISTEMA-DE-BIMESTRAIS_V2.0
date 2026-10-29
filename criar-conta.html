@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Criar Conta - EEMTI Dragão do Mar</title>
+    <link rel="icon" type="image/png" href="imagem1.png">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --bg: #0f172a; --card: #1e293b; --primary: #8b5cf6; --text: #f8fafc; --text-dim: #94a3b8; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: sans-serif; background: radial-gradient(circle at top right, #1e293b, #0f172a); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; color: var(--text); }
+        .login-card { background: var(--card); width: 100%; max-width: 380px; padding: 40px 30px; border-radius: 24px; text-align: center; border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        .logo { width: 80px; margin-bottom: 20px; }
+        .input-group { position: relative; margin-bottom: 15px; width: 100%; }
+        .input-group i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--text-dim); }
+        input { width: 100%; padding: 14px 15px 14px 45px; background: #0f172a; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: white; outline: none; font-size: 16px; display: block; }
+        .btn-entrar { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; }
+        .btn-entrar:hover { background: #7c3aed; }
+        #msg { margin-top: 15px; font-size: 14px; }
+        footer { margin-top: 40px; text-align: center; color: var(--text-dim); font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <img src="imagem1.png" class="logo">
+        <h1>Criar Conta</h1>
+        <p style="color: var(--text-dim); margin-bottom: 25px; font-size: 14px;">Cadastre-se para acessar o sistema</p>
+
+        <div class="input-group">
+            <i class="fas fa-envelope"></i>
+            <input id="email" type="email" placeholder="Seu melhor e-mail">
+        </div>
+        <div class="input-group">
+            <i class="fas fa-lock"></i>
+            <input id="senha" type="password" placeholder="Crie uma senha">
+        </div>
+
+        <button class="btn-entrar" onclick="cadastrar()">CADASTRAR</button>
+        <p id="msg"></p>
+        
+        <a href="index.html" style="color:var(--primary); text-decoration:none; font-size:13px; display:block; margin-top:20px; font-weight:600;">
+            <i class="fas fa-arrow-left"></i> Já tenho uma conta
+        </a>
+    </div>
+
+    <footer>
+        <p>EEMTI DRAGÃO DO MAR - L.E.I.</p>
+        <p>By D.S.Montenegro</p>
+    </footer>
+
+    <script>
+        const client = supabase.createClient("https://fwemutmkbvnriqxxufhx.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3ZW11dG1rYnZucmlxeHh1Zmh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNjM2MzMsImV4cCI6MjA4ODczOTYzM30.HCXIoI_r7_yGJntTPIizhrP4apxXV3Ahd6Jk2AkvKas");
+
+        async function cadastrar() {
+            const email = document.getElementById("email").value;
+            const senha = document.getElementById("senha").value;
+            const msg = document.getElementById("msg");
+
+            if(!email || !senha) { alert("Preencha todos os campos!"); return; }
+
+            msg.innerText = "Processando...";
+            const { data, error } = await client.auth.signUp({ email, password: senha });
+
+            if(error) {
+                msg.style.color = "#f87171";
+                msg.innerText = error.message;
+            } else {
+                msg.style.color = "#22c55e";
+                msg.innerText = "Sucesso! Verifique seu e-mail para confirmar o cadastro.";
+                // Opcional: alert("Conta criada! Verifique seu e-mail.");
+            }
+        }
+    </script>
+</body>
+</html>

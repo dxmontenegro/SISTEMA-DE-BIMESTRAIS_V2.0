@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle de PCs — Indisponíveis</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--red:#b91c1c;--green:#16a34a;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;background:radial-gradient(circle at top right,#1e293b,#0d1117);color:var(--text);min-height:100vh;padding:20px}
+header{max-width:900px;margin:auto;display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+h1{font-size:20px} .sub{font-size:11px;color:var(--muted);margin-top:3px}
+button{border:1px solid var(--border);background:#21262d;color:white;border-radius:9px;padding:9px 13px;cursor:pointer;font-weight:700}
+.main{max-width:900px;margin:auto;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:18px}
+.info{background:#0d1117;border:1px solid var(--border);padding:12px;border-radius:12px;color:var(--muted);font-size:12px;line-height:1.5;margin-bottom:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.pc{background:#0d1117;border:1px solid var(--border);border-radius:13px;padding:13px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pc.ind{border-color:#991b1b;background:rgba(185,28,28,.12)}
+.nome{font-weight:900} .estado{font-size:10px;color:var(--muted);margin-top:3px}
+.switch{position:relative;width:48px;height:26px;flex-shrink:0}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;background:#475569;border-radius:30px;cursor:pointer}
+.slider:before{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;background:white;border-radius:50%;transition:.2s}
+input:checked+.slider{background:var(--red)}
+input:checked+.slider:before{transform:translateX(22px)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:15px}
+.msg{min-height:22px;margin-top:14px;font-size:12px;font-weight:700}
+footer{text-align:center;color:var(--muted);font-size:11px;margin-top:18px}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1><i class="fas fa-desktop"></i> CONTROLE DE PCs</h1>
+    <div class="sub">EEMTI DRAGÃO DO MAR • marcar somente os computadores INDISPONÍVEIS</div>
+  </div>
+  <button onclick="window.history.back()"><i class="fas fa-arrow-left"></i> Voltar</button>
+</header>
+
+<main class="main">
+  <div class="info">
+    Marque o computador que apresentou problema. Ele será identificado como
+    <b style="color:#f87171">INDISPONÍVEL</b> 
+  </div>
+
+  <div class="actions">
+    <button onclick="todos(false)">✓ Liberar todos</button>
+    <button onclick="todos(true)">✕ Indisponibilizar todos</button>
+  </div>
+
+  <div id="grid" class="grid"></div>
+  <div id="msg" class="msg"></div>
+</main>
+
+<footer>EEMTI DRAGÃO DO MAR • L.E.I. • By D.S.Montenegro</footer>
+
+<script>
+const client = supabase.createClient("https://fwemutmkbvnriqxxufhx.supabase.co","eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3ZW11dG1rYnZucmlxeHh1Zmh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNjM2MzMsImV4cCI6MjA4ODczOTYzM30.HCXIoI_r7_yGJntTPIizhrP4apxXV3Ahd6Jk2AkvKas");
+const grid = document.getElementById("grid");
+const msg = document.getElementById("msg");
+let nomes = [];
+
+function setMsg(text, ok=true){
+  msg.textContent=text;
+  msg.style.color=ok ? "#4ade80" : "#f87171";
+}
+
+async function carregar(){
+  setMsg("Carregando...");
+  const {data,error} = await client.from("provas_terminais").select("nome");
+  if(error){setMsg("Erro: "+error.message,false);return;}
+  nomes=(data||[]).sort((a,b)=>parseInt(a.nome.replace("PC",""))-parseInt(b.nome.replace("PC","")));
+  render();
+  setMsg("Pronto.");
+}
+
+function render(){
+  grid.innerHTML="";
+  nomes.forEach(x=>{
+    grid.insertAdjacentHTML("beforeend",`
+      <div class="pc" id="card-${x.nome}">
+        <div>
+          <div class="nome">${x.nome}</div>
+          <div class="estado" id="estado-${x.nome}">NORMAL</div>
+        </div>
+        <label class="switch" title="Marcar indisponível">
+          <input type="checkbox" id="chk-${x.nome}" onchange="alterar('${x.nome}',this.checked)">
+          <span class="slider"></span>
+        </label>
+      </div>`);
+  });
+  carregarEstados();
+}
+
+async function carregarEstados(){
+  const {data,error} = await client.from("provas_terminais").select("nome,status");
+  if(error)return;
+  (data||[]).forEach(pc=>{
+    const indis = pc.status === "indisponivel";
+    const chk=document.getElementById("chk-"+pc.nome);
+    const card=document.getElementById("card-"+pc.nome);
+    const estado=document.getElementById("estado-"+pc.nome);
+    if(chk) chk.checked=indis;
+    if(card) card.classList.toggle("ind",indis);
+    if(estado) estado.textContent=indis ? "INDISPONÍVEL" : "NORMAL";
+  });
+}
+
+async function alterar(nome, indisponivel){
+  const novoStatus = indisponivel ? "indisponivel" : "livre";
+  setMsg("Atualizando "+nome+"...");
+  const {error} = await client.from("provas_terminais")
+    .update({status:novoStatus, aluno_id:null})
+    .eq("nome",nome);
+  if(error){
+    setMsg("Erro ao atualizar "+nome+": "+error.message,false);
+    document.getElementById("chk-"+nome).checked=!indisponivel;
+    return;
+  }
+  const card=document.getElementById("card-"+nome);
+  const estado=document.getElementById("estado-"+nome);
+  card.classList.toggle("ind",indisponivel);
+  estado.textContent=indisponivel ? "INDISPONÍVEL" : "NORMAL";
+  setMsg(nome+(indisponivel ? " marcado como INDISPONÍVEL." : " liberado."));
+}
+
+async function todos(indisponivel){
+  if(!nomes.length)return;
+  setMsg("Atualizando...");
+  const nomesPc=nomes.map(x=>x.nome);
+  const {error} = await client.from("provas_terminais")
+    .update({status:indisponivel ? "indisponivel" : "livre", aluno_id:null})
+    .in("nome",nomesPc);
+  if(error){setMsg("Erro: "+error.message,false);return;}
+  render();
+  setMsg(indisponivel ? "Todos marcados como INDISPONÍVEIS." : "Todos liberados.");
+}
+
+carregar();
+</script>
+</body>
+</html>

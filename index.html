@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sistema de Provas - EEMTI Dragão do Mar</title>
+    <link rel="icon" type="image/png" href="imagem1.png">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --primary: #8b5cf6;
+            --primary-hover: #7c3aed;
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+            --danger: #f87171;
+            --success: #22c55e;
+            --input-bg: #0f172a;
+        }
+
+        * {
+            box-sizing: border-box; 
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            background: radial-gradient(circle at top right, #1e293b, #0f172a);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-card {
+            background: var(--card);
+            width: 100%;
+            max-width: 380px;
+            padding: 40px 30px;
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .logo {
+            width: 85px;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.3));
+        }
+
+        h1 { font-size: 20px; margin-bottom: 5px; font-weight: 800; }
+        .subtitle { color: var(--text-dim); font-size: 13px; margin-bottom: 30px; text-transform: uppercase; }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 15px;
+            width: 100%;
+        }
+
+        .input-group i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-dim);
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 15px 14px 45px;
+            background: var(--input-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            outline: none;
+            transition: 0.3s;
+        }
+
+        input:focus { border-color: var(--primary); }
+
+        .btn-entrar {
+            width: 100%;
+            padding: 15px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .links-aux {
+            margin-top: 25px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+        }
+
+        .links-aux a { color: var(--primary); text-decoration: none; font-weight: 600; }
+
+        /* Área de Mensagem Refinada */
+        #status-msg { 
+            margin-top: 20px; 
+            font-size: 14px; 
+            min-height: 24px; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border-radius: 8px;
+            padding: 5px;
+        }
+
+        .msg-erro { color: var(--danger); background: rgba(248, 113, 113, 0.1); }
+        .msg-sucesso { color: var(--success); background: rgba(34, 197, 94, 0.1); }
+
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            color: var(--text-dim);
+            font-size: 12px;
+        }
+        footer b { color: var(--text); }
+        footer i { color: var(--primary); margin: 0 4px; }
+    </style>
+</head>
+<body>
+
+    <div class="login-card" id="card">
+        <img src="imagem1.png" class="logo" alt="Logo">
+        <h1>EEMTI DRAGÃO DO MAR</h1>
+        <p class="subtitle">3º Bimestre - Avaliações</p>
+
+        <div class="input-group">
+            <i class="fas fa-envelope"></i>
+            <input id="email" type="email" placeholder="E-mail">
+        </div>
+
+        <div class="input-group">
+            <i class="fas fa-lock"></i>
+            <input id="senha" type="password" placeholder="Senha">
+        </div>
+
+        <button class="btn-entrar" id="btnEntrar" onclick="login()">
+            <i class="fas fa-sign-in-alt"></i> ENTRAR
+        </button>
+
+        <div class="links-aux">
+            <a href="#" onclick="esqueciSenha()"><i class="fas fa-key"></i> Esqueci a senha</a>
+            <a href="criar-conta.html"><i class="fas fa-user-plus"></i> Criar conta</a>
+        </div>
+
+        <div id="status-msg"></div>
+    </div>
+
+    <footer>
+        <p><i class="fas fa-school"></i> <b>EEMTI DRAGÃO DO MAR - L.E.I.</b></p>
+        <p><i class="fas fa-code"></i> By <b>D.S.Montenegro</b> <i class="fas fa-bolt"></i></p>
+    </footer>
+
+<script>
+    const SUPABASE_URL = "https://fwemutmkbvnriqxxufhx.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3ZW11dG1rYnZucmlxeHh1Zmh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNjM2MzMsImV4cCI6MjA4ODczOTYzM30.HCXIoI_r7_yGJntTPIizhrP4apxXV3Ahd6Jk2AkvKas";
+    const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    async function login(){
+        const email = document.getElementById("email").value;
+        const senha = document.getElementById("senha").value;
+        const statusDiv = document.getElementById("status-msg");
+        const btn = document.getElementById("btnEntrar");
+
+        // Limpa mensagens anteriores e desabilita o botão
+        statusDiv.className = "";
+        statusDiv.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Autenticando...';
+        btn.disabled = true;
+        btn.style.opacity = "0.7";
+
+        const { error } = await client.auth.signInWithPassword({ email, password: senha });
+
+        if(error){
+            statusDiv.className = "msg-erro";
+            statusDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${error.message}`;
+            btn.disabled = false;
+            btn.style.opacity = "1";
+            return;
+        }
+
+        // Feedback de Sucesso sem Popup
+        statusDiv.className = "msg-sucesso";
+        statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> Login realizado! Redirecionando...';
+        
+        // Pequeno atraso para o usuário ver a confirmação antes de mudar a página
+        setTimeout(() => {
+            window.location.href = "painel.html";
+        }, 800);
+    }
+
+    function esqueciSenha() {
+        const email = document.getElementById("email").value;
+        if(!email) { alert("Digite seu e-mail no campo acima."); return; }
+        client.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + '/reset-senha.html' })
+            .then(() => alert("E-mail de recuperação enviado!"));
+    }
+</script>
+
+</body>
+</html>

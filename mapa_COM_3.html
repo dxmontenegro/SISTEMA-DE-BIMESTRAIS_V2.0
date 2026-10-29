@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Mapa Lab — LEI</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+
+<style>
+
+*{ box-sizing:border-box; margin:0; padding:0; }
+
+:root{
+  --bg:           #0d1117;
+  --surface:      #161b22;
+  --border:       #30363d;
+  --text:         #e6edf3;
+  --muted:        #8b949e;
+  --livre-bg:     #16a34a;
+  --livre-glow:   rgba(22,163,74,0.55);
+  --ocupado-bg:   #b91c1c;
+  --ocupado-glow: rgba(185,28,28,0.35);
+  --accent:       #2563eb;
+}
+
+/* ── TUDO CABE NA TELA ───────────────────────── */
+html, body {
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── HEADER ─────────────────────────────────── */
+header{
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  z-index: 10;
+  gap: 12px;
+}
+
+/* Bloco escola */
+.h-escola{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.h-escola-icon{
+  font-size: 20px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.h-escola-nome{
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: 0.3px;
+  line-height: 1.1;
+}
+
+.h-escola-sub{
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+
+/* Separador */
+.h-sep{
+  width: 1px;
+  height: 32px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+/* Bloco LEI */
+.h-lei{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.h-lei-icon{
+  font-size: 16px;
+  color: #4ade80;
+}
+
+.h-lei-label{
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: #4ade80;
+  letter-spacing: 1px;
+}
+
+.h-lei-desc{
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 1px;
+  letter-spacing: 0.3px;
+}
+
+/* Bloco dev — empurra para direita */
+.h-dev{
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 5px 10px;
+}
+
+.h-dev-icon{
+  font-size: 13px;
+  color: #6366f1;
+}
+
+.h-dev-text{
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.h-dev-text b{
+  color: var(--text);
+  font-weight: 700;
+}
+
+/* Botão voltar */
+.btn-back{
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 6px 10px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-back:hover{ border-color:var(--text); color:var(--text); }
+
+/* ── STATUS BAR ─────────────────────────────── */
+.statusbar{
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.legend-item{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+}
+
+.legend-dot{
+  width: 8px; height: 8px;
+  border-radius: 50%;
+}
+
+.legend-dot.livre   { background: var(--livre-bg); }
+.legend-dot.ocupado { background: var(--ocupado-bg); }
+
+#contadores{
+  margin-left: auto;
+  display: flex;
+  gap: 14px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.count-livre   { color: #4ade80; font-weight: 700; }
+.count-ocupado { color: #f87171; font-weight: 700; }
+
+/* ── GRID WRAPPER ────────────────────────────── */
+#grid-wrap{
+  flex: 1;
+  overflow: hidden;
+  padding: 10px 12px;
+}
+
+/* ── GRID ───────────────────────────────────── */
+.grid{
+  display: grid;
+  width: 100%;
+  height: 100%;
+  gap: 10px;
+  /* colunas e linhas definidas pelo JS */
+}
+
+/* ── CARD ───────────────────────────────────── */
+.pc{
+  border-radius: 12px;
+  padding: 0;
+  text-align: center;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  position: relative;
+  transition: transform 0.2s, box-shadow 0.2s, background 0.3s, border-color 0.3s;
+  cursor: default;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.pc.livre{
+  background: var(--livre-bg);
+  border-color: #15803d;
+  box-shadow: 0 0 16px var(--livre-glow);
+  animation: pulse-livre 1.6s ease-in-out infinite;
+}
+
+.pc.livre:hover{
+  transform: scale(1.03);
+  box-shadow: 0 0 28px var(--livre-glow);
+}
+
+@keyframes pulse-livre{
+  0%,100%{ box-shadow: 0 0 14px var(--livre-glow); }
+  50%    { box-shadow: 0 0 30px rgba(22,163,74,0.8); }
+}
+
+.pc.ocupado{
+  background: var(--ocupado-bg);
+  border-color: #991b1b;
+  box-shadow: 0 0 10px var(--ocupado-glow);
+  opacity: 0.85;
+}
+
+.pc.ocupado:hover{ opacity:1; transform:scale(1.02); }
+
+.pc-icon{
+  font-size: clamp(13px, 2vmin, 20px);
+  color: rgba(255,255,255,0.85);
+}
+
+.pc-nome{
+  font-family: 'JetBrains Mono', monospace;
+  font-size: clamp(13px, 2.2vmin, 20px);
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.3px;
+  line-height: 1;
+}
+
+.status{
+  font-size: clamp(10px, 1.4vmin, 14px);
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: rgba(0,0,0,0.2);
+  color: rgba(255,255,255,0.9);
+  line-height: 1.4;
+}
+
+.pc-aluno{
+  font-size: clamp(9px, 1.2vmin, 13px);
+  color: rgba(255,255,255,0.7);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 92%;
+  line-height: 1;
+}
+
+.pc-turma{
+  font-size: clamp(10px, 1.3vmin, 13px);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  opacity: 0.7;
+  color: #fff;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.pc-x{
+  position: absolute;
+  top: 6px; right: 7px;
+  font-size: clamp(10px, 1.2vmin, 13px);
+  color: rgba(255,255,255,0.45);
+  display: none;
+}
+
+.pc.ocupado .pc-x{ display:block; }
+
+/* ── BEEP BANNER ─────────────────────────────── */
+#beep-banner{
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--livre-bg);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 22px;
+  border-radius: 40px;
+  box-shadow: 0 0 24px var(--livre-glow);
+  z-index: 100;
+  animation: fadeBanner 0.25s ease;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+@keyframes fadeBanner{
+  from{ opacity:0; transform:translateX(-50%) translateY(8px); }
+  to  { opacity:1; transform:translateX(-50%) translateY(0); }
+}
+
+/* ── MOBILE: permite scroll horizontal por linha ─ */
+@media (max-width: 600px){
+  html, body { overflow: hidden; }
+
+  #grid-wrap{
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .grid{
+    height: auto !important;
+    /* JS seta só colunas no mobile, linhas crescem livremente */
+  }
+
+  .pc{
+    min-height: 70px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .pc.livre{ animation:none; }
+  #beep-banner{ animation:none; }
+}
+
+</style>
+</head>
+<body>
+
+<header>
+
+  <!-- Escola -->
+  <div class="h-escola">
+    <i class="fas fa-school h-escola-icon"></i>
+    <div>
+      <div class="h-escola-nome">EEMTI DRAGÃO DO MAR</div>
+      <div class="h-escola-sub">By D.S.MONTENEGRO</div>
+    </div>
+  </div>
+
+  <div class="h-sep"></div>
+
+  <!-- LEI -->
+  <div class="h-lei">
+    <i class="fas fa-laptop h-lei-icon"></i>
+    <div>
+      <div class="h-lei-label">L.E.I.</div>
+      <div class="h-lei-desc">Lab. de Educação e Informática</div>
+    </div>
+  </div>
+
+  <!-- Dev -->
+  <div class="h-dev">
+    <i class="fas fa-code h-dev-icon"></i>
+    <div class="h-dev-text">by <b>D.S.Montenegro</b></div>
+  </div>
+
+  <!-- Voltar -->
+  <button class="btn-back" onclick="voltar()">
+    <i class="fas fa-arrow-left"></i> Voltar
+  </button>
+
+</header>
+
+<div class="statusbar">
+  <div class="legend-item"><span class="legend-dot livre"></span> Livre</div>
+  <div class="legend-item"><span class="legend-dot ocupado"></span> Ocupado</div>
+  <div id="contadores">
+    <span>Livres: <span class="count-livre" id="cnt-livre">0</span></span>
+    <span>Ocupados: <span class="count-ocupado" id="cnt-ocupado">0</span></span>
+  </div>
+</div>
+
+<div id="grid-wrap">
+  <div class="grid" id="grid"></div>
+</div>
+
+<div id="beep-banner">🔔 PC LIVRE — atenção!</div>
+
+<script>
+
+const client = supabase.createClient(
+  "https://fwemutmkbvnriqxxufhx.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3ZW11dG1rYnZucmlxeHh1Zmh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNjM2MzMsImV4cCI6MjA4ODczOTYzM30.HCXIoI_r7_yGJntTPIizhrP4apxXV3Ahd6Jk2AkvKas"
+)
+
+const estadoAnterior = {}
+let totalPcs = 0
+let audioCtx = null
+
+function getAudioCtx(){
+  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+  return audioCtx
+}
+
+function tocarBeep(){
+  try{
+    const ctx = getAudioCtx()
+    ;[0, 0.22].forEach(offset => {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.connect(gain); gain.connect(ctx.destination)
+      osc.type = 'sine'
+      osc.frequency.setValueAtTime(880, ctx.currentTime + offset)
+      osc.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + offset + 0.12)
+      gain.gain.setValueAtTime(0.4, ctx.currentTime + offset)
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.18)
+      osc.start(ctx.currentTime + offset)
+      osc.stop(ctx.currentTime + offset + 0.2)
+    })
+  }catch(e){}
+}
+
+let bannerTimer = null
+function mostrarBanner(nomePc){
+  const b = document.getElementById('beep-banner')
+  b.textContent = `🔔 ${nomePc} LIVRE — atenção!`
+  b.style.display = 'block'
+  clearTimeout(bannerTimer)
+  bannerTimer = setTimeout(() => { b.style.display = 'none' }, 3500)
+}
+
+function getTurma(pcNome){
+  const n = parseInt(pcNome.replace("PC",""))
+  if(n % 3 === 1) return "1º ANO"
+  if(n % 3 === 2) return "2º ANO"
+  return "3º ANO"
+}
+
+/* ── GRID LAYOUT DINÂMICO ────────────────────── */
+function ajustarGrid(){
+  if(!totalPcs) return
+  const isMobile = window.innerWidth <= 600
+  const grid = document.getElementById('grid')
+
+  if(isMobile){
+    // Mobile: 3 colunas fixas, cresce verticalmente
+    grid.style.gridTemplateColumns = 'repeat(3, 1fr)'
+    grid.style.gridTemplateRows   = ''
+    grid.style.height             = 'auto'
+    return
+  }
+
+  // Desktop: calcular cols/rows que caibam no espaço disponível
+  const wrap   = document.getElementById('grid-wrap')
+  const W      = wrap.clientWidth  - 24
+  const H      = wrap.clientHeight - 20
+  const gap    = 10
+  const n      = totalPcs
+
+  // Preferir cards mais largos que altos (ratio > 1.4)
+  // Score = área penalizada se card ficar muito alto
+  let bestCols = 1, bestScore = 0
+  for(let cols = 1; cols <= n; cols++){
+    const rows  = Math.ceil(n / cols)
+    const cardW = (W - gap*(cols-1)) / cols
+    const cardH = (H - gap*(rows-1)) / rows
+    if(cardW < 80 || cardH < 50) continue
+    const ratio = cardW / cardH          // queremos > 1 (mais largo que alto)
+    const area  = cardW * cardH
+    // penaliza cards muito altos (ratio < 1) e premia cards baixos
+    const score = area * Math.min(ratio, 2.5)
+    if(score > bestScore){ bestScore = score; bestCols = cols }
+  }
+
+  const bestRows = Math.ceil(n / bestCols)
+  grid.style.gridTemplateColumns = `repeat(${bestCols}, 1fr)`
+  grid.style.gridTemplateRows    = `repeat(${bestRows}, 1fr)`
+  grid.style.height              = '100%'
+}
+
+/* ── INICIALIZAR ─────────────────────────────── */
+async function inicializar(){
+  const { data: pcs } = await client.from("provas_terminais").select("nome")
+  pcs.sort((a,b) => parseInt(a.nome.replace("PC","")) - parseInt(b.nome.replace("PC","")))
+  totalPcs = pcs.length
+
+  const grid = document.getElementById("grid")
+
+  pcs.forEach(pc => {
+    estadoAnterior[pc.nome] = null
+    grid.innerHTML += `
+      <div class="pc" id="card-${pc.nome}">
+        <div class="pc-x"><i class="fas fa-circle-xmark"></i></div>
+        <i class="fas fa-desktop pc-icon"></i>
+        <div class="pc-nome">${pc.nome}</div>
+        <div class="status" id="status-${pc.nome}">—</div>
+        <div class="pc-aluno" id="aluno-${pc.nome}">—</div>
+        <div class="pc-turma">${getTurma(pc.nome)}</div>
+      </div>`
+  })
+
+  ajustarGrid()
+  atualizar()
+}
+
+async function atualizar(){
+  const { data: pcs } = await client.from("provas_terminais").select("*")
+  let livres = 0, ocupados = 0
+
+  for(let pc of pcs){
+    const card   = document.getElementById(`card-${pc.nome}`)
+    const status = document.getElementById(`status-${pc.nome}`)
+    const aluno  = document.getElementById(`aluno-${pc.nome}`)
+    if(!card) continue
+
+    const anterior = estadoAnterior[pc.nome]
+    if(anterior !== null && anterior !== "livre" && pc.status === "livre"){
+      tocarBeep()
+      mostrarBanner(pc.nome)
+    }
+    estadoAnterior[pc.nome] = pc.status
+
+    card.classList.remove("livre","ocupado")
+    card.classList.add(pc.status)
+    status.textContent = pc.status === "livre" ? "LIVRE" : "OCUPADO"
+
+    if(pc.aluno_id){
+      const { data: a } = await client.from("provas_alunos").select("nome").eq("id",pc.aluno_id).single()
+      aluno.textContent = a ? a.nome : "—"
+    }else{
+      aluno.textContent = "—"
+    }
+
+    if(pc.status === "livre") livres++
+    else ocupados++
+  }
+
+  document.getElementById("cnt-livre").textContent   = livres
+  document.getElementById("cnt-ocupado").textContent = ocupados
+}
+
+function voltar(){ window.location.href = "painel.html" }
+
+inicializar()
+setInterval(atualizar, 3000)
+
+window.addEventListener('resize', ajustarGrid)
+document.addEventListener('click', () => { getAudioCtx() }, { once: true })
+
+</script>
+</body>
+</html>

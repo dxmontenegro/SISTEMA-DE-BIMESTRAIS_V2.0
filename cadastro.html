@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cadastro - EEMTI Dragão do Mar</title>
+    <link rel="icon" type="image/png" href="imagem1.png">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --primary: #8b5cf6;
+            --primary-hover: #7c3aed;
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+            --success: #10b981;
+            --danger: #f87171;
+            --input-bg: #0f172a;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            /* CORREÇÃO PARA O FUNDO NO TELEMÓVEL */
+            background: radial-gradient(circle at top right, #1e293b, #0f172a);
+            background-attachment: fixed;
+            background-size: cover;
+            color: var(--text);
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+        }
+
+        /* Barra de Navegação Superior */
+        .nav-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            max-width: 450px;
+            width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .btn-nav {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text);
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-nav:hover { background: var(--card); border-color: var(--primary); }
+        .btn-sair { color: var(--danger); }
+
+        /* Container Principal */
+        .main-card {
+            background: var(--card);
+            width: 100%;
+            max-width: 450px;
+            margin: 0 auto;
+            padding: 25px 20px;
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            text-align: center;
+            flex-grow: 1;
+        }
+
+        .header-section { margin-bottom: 20px; }
+        .logo-sm { width: 60px; margin-bottom: 10px; filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.3)); }
+        h2 { font-size: 20px; font-weight: 800; }
+        .subtitle { color: var(--primary); font-size: 12px; font-weight: 700; text-transform: uppercase; margin-top: 5px; }
+
+        /* Formulário */
+        .form-group { position: relative; margin-bottom: 12px; text-align: left; }
+        .form-group i { position: absolute; left: 15px; top: 16px; color: var(--text-dim); }
+        
+        input, select {
+            width: 100%;
+            padding: 14px 15px 14px 45px;
+            background: var(--input-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: white;
+            font-size: 15px;
+            outline: none;
+            transition: 0.3s;
+        }
+
+        input:focus, select:focus { border-color: var(--primary); background: #161e31; }
+
+        /* Botões de Ação */
+        .btn-action {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-transform: uppercase;
+        }
+
+        .btn-purple { background: var(--primary); color: white; }
+        .btn-green { background: var(--success); color: #052e16; margin-top: 15px; }
+        .btn-action:hover { transform: translateY(-2px); opacity: 0.9; }
+
+        /* Código de Barras */
+        .barcode-container {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            margin: 15px 0;
+            display: none; 
+            justify-content: center;
+            border: 2px solid var(--primary);
+        }
+        #barcode { max-width: 100%; height: auto; }
+
+        #msg { margin-top: 15px; font-size: 14px; font-weight: 600; min-height: 20px; }
+
+        /* Rodapé */
+        footer {
+            margin-top: 30px;
+            text-align: center;
+            color: var(--text-dim);
+            font-size: 10px;
+            padding-bottom: 10px;
+        }
+        footer b { color: var(--text); }
+        footer i { color: var(--primary); margin: 0 3px; }
+
+    </style>
+</head>
+<body>
+
+    <div class="nav-top">
+        <button class="btn-nav" onclick="voltar()"><i class="fas fa-arrow-left"></i> Voltar</button>
+        <button class="btn-nav btn-sair" onclick="sair()"><i class="fas fa-sign-out-alt"></i> Sair</button>
+    </div>
+
+    <div class="main-card">
+        <div class="header-section">
+            <img src="imagem1.png" class="logo-sm">
+            <h2>Novo Aluno</h2>
+            <div class="subtitle">EEMTI Dragão do Mar</div>
+        </div>
+
+        <div class="form-group">
+            <i class="fas fa-id-card"></i>
+            <input id="matricula" type="number" placeholder="Matrícula">
+        </div>
+
+        <div class="form-group">
+            <i class="fas fa-user-edit"></i>
+            <input id="nome" placeholder="Nome Completo">
+        </div>
+
+        <div class="form-group">
+            <i class="fas fa-envelope"></i>
+            <input id="email" type="email" placeholder="E-mail (Opcional)">
+        </div>
+
+        <div class="form-group">
+            <i class="fas fa-users"></i>
+            <select id="turma">
+                <option value="" disabled selected>Selecione a Turma</option>
+                <option>1A</option><option>1B</option><option>1C</option><option>1D</option>
+                <option>2A</option><option>2B</option><option>2C</option><option>2D</option>
+                <option>3A</option><option>3B</option><option>3C</option>
+            </select>
+        </div>
+
+        <button class="btn-action btn-purple" onclick="gerarCodigo()">
+            <i class="fas fa-barcode"></i> Gerar Código
+        </button>
+
+        <div class="barcode-container" id="barcodeBox">
+            <svg id="barcode"></svg>
+        </div>
+
+        <button class="btn-action btn-green" onclick="salvar()">
+            <i class="fas fa-save"></i> Salvar Cadastro
+        </button>
+
+        <p id="msg"></p>
+    </div>
+
+    <footer>
+        <p><i class="fas fa-school"></i> <b>EEMTI DRAGÃO DO MAR - L.E.I.</b></p>
+        <p><i class="fas fa-code"></i> By <b>D.S.Montenegro</b> <i class="fas fa-bolt"></i></p>
+    </footer>
+
+<script>
+    const SUPABASE_URL = "https://fwemutmkbvnriqxxufhx.supabase.co"
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3ZW11dG1rYnZucmlxeHh1Zmh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNjM2MzMsImV4cCI6MjA4ODczOTYzM30.HCXIoI_r7_yGJntTPIizhrP4apxXV3Ahd6Jk2AkvKas"
+    const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+
+    function voltar() { window.location.href = "painel.html"; }
+    
+    async function sair() {
+        if(confirm("Deseja sair do sistema?")) {
+            await client.auth.signOut();
+            window.location.href = "index.html";
+        }
+    }
+
+    function gerarCodigo(){
+        const matricula = document.getElementById("matricula").value;
+        if(!matricula){ alert("Digite a matrícula primeiro"); return; }
+
+        document.getElementById("barcodeBox").style.display = "flex";
+        const codigo = "ALUNO-" + matricula;
+        JsBarcode("#barcode", codigo, {
+            format: "CODE128",
+            displayValue: true,
+            width: 2,
+            height: 50,
+            fontSize: 14,
+            lineColor: "#000"
+        });
+    }
+
+    async function salvar(){
+        const matricula = document.getElementById("matricula").value;
+        const nome = document.getElementById("nome").value;
+        const email = document.getElementById("email").value;
+        const turma = document.getElementById("turma").value;
+        const msg = document.getElementById("msg");
+
+        if(!matricula || !nome || !turma){
+            msg.innerText = "⚠️ Preencha os campos obrigatórios";
+            msg.style.color = "#f59e0b";
+            return;
+        }
+
+        msg.innerText = "Salvando no banco...";
+        msg.style.color = "white";
+
+        const { error } = await client.from("provas_alunos").insert([
+            { matricula, nome, email, turma, codigo_barras: "ALUNO-" + matricula }
+        ]);
+
+        if(error){
+            msg.innerText = "❌ " + error.message;
+            msg.style.color = "var(--danger)";
+        } else {
+            msg.innerText = "✅ ALUNO CADASTRADO!";
+            msg.style.color = "var(--success)";
+            setTimeout(() => { location.reload(); }, 2000);
+        }
+    }
+</script>
+
+</body>
+</html>

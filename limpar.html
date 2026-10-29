@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Limpar Terminal - EEMTI Dragão do Mar</title>
+    <link rel="icon" type="image/png" href="imagem1.png">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --primary: #8b5cf6;
+            --primary-hover: #7c3aed;
+            --success: #10b981;
+            --danger: #ef4444;
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+            --input-bg: #0f172a;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            background: radial-gradient(circle at top right, #1e293b, #0f172a);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+        }
+
+        /* Navegação Superior */
+        .nav-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            max-width: 450px;
+            width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .btn-nav {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text);
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: 0.3s;
+        }
+
+        .btn-sair { color: var(--danger); }
+
+        /* Card Central */
+        .main-card {
+            background: var(--card);
+            width: 100%;
+            max-width: 450px;
+            margin: 0 auto;
+            padding: 30px 25px;
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            text-align: center;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .icon-header {
+            font-size: 40px;
+            color: var(--success);
+            margin-bottom: 15px;
+            filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.3));
+        }
+
+        h2 { font-size: 22px; font-weight: 800; margin-bottom: 10px; color: var(--success); }
+        p.subtitle { color: var(--text-dim); font-size: 14px; margin-bottom: 25px; }
+
+        select {
+            width: 100%;
+            padding: 16px;
+            background: var(--input-bg);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            margin-bottom: 20px;
+            outline: none;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='C19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            background-size: 15px;
+        }
+
+        .btn-acao {
+            width: 100%;
+            padding: 16px;
+            background: var(--success);
+            color: #052e16;
+            border: none;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            text-transform: uppercase;
+        }
+
+        .btn-acao:hover:not(:disabled) { 
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-acao:disabled {
+            background: #1e3a2f;
+            color: #4ade80;
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #status {
+            margin-top: 20px;
+            font-weight: 600;
+            font-size: 14px;
+            min-height: 24px;
+        }
+
+        /* Rodapé */
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            color: var(--text-dim);
+            font-size: 11px;
+            padding-bottom: 15px;
+        }
+        footer b { color: var(--text); }
+        footer i { color: var(--primary); margin: 0 3px; }
+
+    </style>
+</head>
+<body>
+
+    <div class="nav-top">
+        <button class="btn-nav" onclick="voltar()"><i class="fas fa-arrow-left"></i> Voltar</button>
+        <button class="btn-nav btn-sair" onclick="sair()"><i class="fas fa-sign-out-alt"></i> Sair</button>
+    </div>
+
+    <div class="main-card">
+        <div class="icon-header">
+            <i class="fas fa-desktop"></i>
+        </div>
+        <h2>Limpar Terminal</h2>
+        <p class="subtitle">Selecione um computador ocupado para liberar o acesso imediatamente.</p>
+
+        <select id="pcSelect">
+            <option value="">Carregando terminais...</option>
+        </select>
+
+        <button id="btnAcao" class="btn-acao" onclick="liberarPC()" disabled>
+            <i class="fas fa-broom"></i> Deixar Livre
+        </button>
+        
+        <div id="status"></div>
+    </div>
+
+    <footer>
+        <p><i class="fas fa-school"></i> <b>EEMTI DRAGÃO DO MAR - L.E.I.</b></p>
+        <p><i class="fas fa-code"></i> By <b>D.S.Montenegro</b> <i class="fas fa-bolt"></i></p>
+    </footer>
+
+<script>
+    const SUPABASE_URL = "https://fwemutmkbvnriqxxufhx.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3ZW11dG1rYnZucmlxeHh1Zmh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNjM2MzMsImV4cCI6MjA4ODczOTYzM30.HCXIoI_r7_yGJntTPIizhrP4apxXV3Ahd6Jk2AkvKas";
+    const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const select = document.getElementById('pcSelect');
+    const btnAcao = document.getElementById('btnAcao');
+    const statusDiv = document.getElementById('status');
+
+    function voltar() { window.location.href = "painel.html"; }
+    async function sair() { await client.auth.signOut(); window.location.href = "index.html"; }
+
+    async function carregarOcupados() {
+        const { data: pcs, error } = await client
+            .from("provas_terminais")
+            .select("*")
+            .neq("status", "livre");
+
+        if (error) {
+            statusDiv.innerHTML = "❌ Erro ao conectar.";
+            return;
+        }
+
+        if (!pcs || pcs.length === 0) {
+            select.innerHTML = '<option value="">Todos os terminais estão livres!</option>';
+            btnAcao.disabled = true;
+        } else {
+            select.innerHTML = '';
+            // Ordenar por nome (PC1, PC2...)
+            pcs.sort((a, b) => parseInt(a.nome.replace("PC","")) - parseInt(b.nome.replace("PC","")));
+            
+            pcs.forEach(pc => {
+                let opt = document.createElement('option');
+                opt.value = pc.nome;
+                opt.innerHTML = `🖥️ ${pc.nome} (Ocupado)`;
+                select.appendChild(opt);
+            });
+            btnAcao.disabled = false;
+        }
+    }
+
+    async function liberarPC() {
+        const nomePC = select.value;
+        if (!nomePC) return;
+
+        btnAcao.disabled = true;
+        statusDiv.style.color = "var(--text)";
+        statusDiv.innerHTML = "<i class='fas fa-spinner fa-spin'></i> Limpando...";
+
+        const { error } = await client
+            .from("provas_terminais")
+            .update({ status: 'livre', aluno_id: null }) 
+            .eq('nome', nomePC);
+
+        if (error) {
+            statusDiv.innerHTML = "❌ Erro: " + error.message;
+            statusDiv.style.color = "var(--danger)";
+            btnAcao.disabled = false;
+        } else {
+            statusDiv.innerHTML = `✅ ${nomePC} LIBERADO COM SUCESSO!`;
+            statusDiv.style.color = "var(--success)";
+            setTimeout(carregarOcupados, 1500);
+        }
+    }
+
+    carregarOcupados();
+</script>
+</body>
+</html>

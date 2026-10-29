@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agenda de Provas</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<style>
+:root {
+--bg:#0f172a;
+--card:#1e293b;
+--primary:#8b5cf6;
+--primary-hover:#7c3aed;
+--text:#fff;
+--dim:#94a3b8;
+--success:#10b981;
+--danger:#f87171;
+}
+body{
+font-family:Arial;
+background:radial-gradient(circle at top right,#1e293b,#0f172a);
+color:var(--text);
+margin:0;
+padding:15px;
+}
+.nav-top{
+display:flex;
+justify-content:space-between;
+max-width:450px;
+margin:auto;
+margin-bottom:20px;
+}
+.btn-nav{
+background:rgba(255,255,255,0.05);
+border:1px solid rgba(255,255,255,0.1);
+color:white;
+padding:8px 15px;
+border-radius:8px;
+cursor:pointer;
+}
+.btn-sair{color:var(--danger);}
+.main-card{
+background:var(--card);
+max-width:450px;
+margin:auto;
+padding:25px;
+border-radius:24px;
+}
+input,select{
+width:100%;
+padding:12px;
+margin-bottom:12px;
+border-radius:10px;
+border:none;
+background:#0f172a;
+color:white;
+}
+.btn{
+width:100%;
+padding:14px;
+border:none;
+border-radius:10px;
+cursor:pointer;
+margin-top:10px;
+font-weight:bold;
+}
+.btn-salvar{background:var(--primary);}
+.btn-salvar:hover{background:var(--primary-hover);}
+.btn-ver{background:#334155;}
+.lista{margin-top:20px;}
+.item{
+background:#0f172a;
+padding:12px;
+border-radius:10px;
+margin-bottom:10px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+.item small{color:var(--dim);}
+.btn-del{
+background:var(--danger);
+border:none;
+padding:6px 10px;
+border-radius:6px;
+cursor:pointer;
+}
+footer{
+margin-top:30px;
+text-align:center;
+font-size:11px;
+color:var(--dim);
+}
+footer b{color:white;}
+footer i{color:var(--primary);}
+</style>
+</head>
+<body>
+
+<div class="nav-top">
+<button class="btn-nav" onclick="voltar()">⬅ Voltar</button>
+<button class="btn-nav btn-sair" onclick="sair()">Sair</button>
+</div>
+
+<div class="main-card">
+<h2>Agenda de Provas</h2>
+
+<input type="date" id="data">
+
+<select id="modalidade">
+<option value="INTEGRAL">Integral</option>
+<option value="NOTURNO">Noturno</option>
+</select>
+
+<select id="area">
+<option value="MAT2">Matemática</option>
+<option value="NAT2">Natureza</option>
+<option value="HUM2">Humanas</option>
+<option value="LIN2">Linguagens</option>
+</select>
+
+<button class="btn btn-salvar" onclick="salvar()">SALVAR</button>
+<button class="btn btn-ver" onclick="carregarAgenda()">VER AGENDA</button>
+
+<p id="msg"></p>
+<div id="lista" class="lista"></div>
+</div>
+
+<footer>
+<p><i class="fas fa-school"></i> <b>EEMTI DRAGÃO DO MAR - L.E.I.</b></p>
+<p><i class="fas fa-code"></i> By <b>D.S.Montenegro</b> <i class="fas fa-bolt"></i></p>
+</footer>
+
+<script>
+const client = supabase.createClient(
+  "https://fwemutmkbvnriqxxufhx.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3ZW11dG1rYnZucmlxeHh1Zmh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNjM2MzMsImV4cCI6MjA4ODczOTYzM30.HCXIoI_r7_yGJntTPIizhrP4apxXV3Ahd6Jk2AkvKas"
+);
+
+function voltar(){ window.location.href = "painel.html"; }
+
+async function sair(){
+  await client.auth.signOut();
+  window.location.href = "index.html";
+}
+
+async function salvar(){
+  const dataVal = document.getElementById("data").value;
+  const modalidade = document.getElementById("modalidade").value;
+  const area = document.getElementById("area").value;
+  const msg = document.getElementById("msg");
+
+  if(!dataVal){
+    msg.innerText = "Selecione a data";
+    return;
+  }
+
+  const { data: existente, error: erroBusca } = await client
+    .from("provas_agenda")
+    .select("*")
+    .eq("data", dataVal)
+    .eq("modalidade", modalidade);
+
+  if(erroBusca){
+    console.error(erroBusca);
+    msg.innerText = "Erro ao buscar agenda";
+    return;
+  }
+
+  if(existente && existente.length > 0){
+    const { error: erroUpdate } = await client
+      .from("provas_agenda")
+      .update({ area })
+      .eq("data", dataVal)
+      .eq("modalidade", modalidade);
+
+    if(erroUpdate){
+      console.error(erroUpdate);
+      msg.innerText = "Erro ao atualizar";
+      return;
+    }
+
+    msg.innerText = "Atualizado!";
+  }else{
+    const { error: erroInsert } = await client
+      .from("provas_agenda")
+      .insert([{ data: dataVal, modalidade, area }]);
+
+    if(erroInsert){
+      console.error(erroInsert);
+      msg.innerText = "Erro ao criar";
+      return;
+    }
+
+    msg.innerText = "Criado!";
+  }
+
+  carregarAgenda();
+}
+
+async function carregarAgenda(){
+  const { data, error } = await client
+    .from("provas_agenda")
+    .select("*")
+    .order("data", { ascending: true });
+
+  lista.innerHTML = "";
+
+  if(error || !data){
+    console.error(error);
+    lista.innerHTML = "<div class='item'><small>Erro ao carregar agenda.</small></div>";
+    return;
+  }
+
+  data.forEach(item=>{
+    lista.innerHTML += `
+      <div class="item">
+        <div>
+          <b>${item.data}</b><br>
+          <small>${item.modalidade} • ${item.area}</small>
+        </div>
+        <button class="btn-del" onclick="apagar('${item.data}','${item.modalidade}')">🗑️</button>
+      </div>
+    `;
+  });
+}
+
+async function apagar(dataVal, modalidade){
+  const { error } = await client
+    .from("provas_agenda")
+    .delete()
+    .eq("data", dataVal)
+    .eq("modalidade", modalidade);
+
+  if(error){
+    console.error(error);
+    alert("Erro ao apagar");
+    return;
+  }
+
+  carregarAgenda();
+}
+
+window.addEventListener("load", carregarAgenda);
+</script>
+</body>
+</html>

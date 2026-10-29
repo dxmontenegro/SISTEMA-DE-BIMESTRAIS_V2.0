@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Liberação de Aluno</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/quagga/dist/quagga.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+
+*{ box-sizing:border-box; margin:0; padding:0; }
+
+body{
+  font-family: -apple-system, system-ui, Arial, sans-serif;
+  background: #0f172a;
+  color: white;
+  padding: 10px 10px 90px;
+  text-align: center;
+}
+
+/* TOPO */
+.topo{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:10px;
+}
+
+.voltar{
+  background:#334155;
+  padding:8px 12px;
+  border-radius:6px;
+  cursor:pointer;
+  font-size:13px;
+}
+
+h3{ margin-bottom:12px; font-size:18px; }
+
+/* CONTAINER */
+.container{
+  background:#1e293b;
+  padding:15px;
+  border-radius:12px;
+  max-width:600px;
+  margin:auto;
+}
+
+/* ── ABAS ── */
+.abas{
+  display:flex;
+  gap:6px;
+  margin-bottom:14px;
+}
+
+.aba{
+  flex:1;
+  padding:9px 4px;
+  border-radius:8px;
+  border: 2px solid transparent;
+  background:#0f172a;
+  color:#94a3b8;
+  font-size:12px;
+  font-weight:700;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  transition: all 0.2s;
+}
+
+.aba.ativa{
+  background:#1e40af;
+  border-color:#3b82f6;
+  color:#fff;
+}
+
+.painel{ display:none; }
+.painel.ativo{ display:block; }
+
+/* ── SCANNER ── */
+#reader{
+  width:100%;
+  aspect-ratio:16/9;
+  border-radius:10px;
+  overflow:hidden;
+  position:relative;
+  background:black;
+  margin-bottom:10px;
+}
+
+#reader video,
+#reader canvas{
+  position:absolute;
+  top:0; left:0;
+  width:100%; height:100%;
+  object-fit:cover;
+}
+
+#reader::after{
+  content:"";
+  position:absolute;
+  left:10%; width:80%;
+  height:2px;
+  background:red;
+  top:50%;
+  animation:laser 2s infinite;
+}
+
+@keyframes laser{
+  0%  { top:20%; }
+  50% { top:80%; }
+  100%{ top:20%; }
+}
+
+/* ── INPUTS ── */
+input, select{
+  padding:11px;
+  margin-top:8px;
+  width:100%;
+  border-radius:8px;
+  border:none;
+  font-size:15px;
+  background:#0f172a;
+  color:white;
+  outline:none;
+}
+
+select option{ background:#0f172a; }
+
+/* ── BOTÕES ── */
+button{
+  padding:11px;
+  margin-top:8px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:bold;
+  font-size:14px;
+  width:100%;
+  transition: opacity 0.2s;
+}
+
+button:active{ opacity:0.8; }
+
+.btn-linha{
+  display:flex;
+  gap:8px;
+  margin-top:10px;
+}
+
+.btn-linha button{ margin-top:0; }
+
+.btn-verde  { background:#16a34a; color:white; }
+.btn-vermelho{ background:#dc2626; color:white; }
+.btn-azul   { background:#2563eb; color:white; }
+.btn-cinza  { background:#334155; color:white; }
+
+/* ── INFO ── */
+.info{
+  margin-top:10px;
+  background:#0f172a;
+  padding:12px;
+  border-radius:8px;
+  text-align:left;
+  font-size:14px;
+  line-height:1.7;
+  min-height:44px;
+}
+
+.info b{ color:#e2e8f0; }
+
+/* ── TURMA SELECT AREA ── */
+.label-sel{
+  text-align:left;
+  font-size:12px;
+  color:#94a3b8;
+  margin-top:12px;
+  margin-bottom:2px;
+  font-weight:600;
+  letter-spacing:0.4px;
+}
+
+/* ── FOOTER ── */
+footer{
+  position:fixed;
+  bottom:0; width:100%;
+  background:#1e293b;
+  padding:6px;
+  font-size:12px;
+  border-top:1px solid #334155;
+  text-align:center;
+}
+
+footer p{ margin:2px; }
+footer i{ color:#8b5cf6; }
+
+</style>
+</head>
+
+<body>
+
+<script>
+document.addEventListener("click", destravarAudio, { once: true })
+</script>
+
+<div class="topo">
+  <div class="voltar" onclick="voltar()">⬅ Voltar</div>
+</div>
+
+<h3>📡 Liberação de Aluno</h3>
+
+<div class="container">
+
+  <!-- ── ABAS ── -->
+  <div class="abas">
+    <div class="aba ativa" id="aba-scanner" onclick="mudarAba('scanner')">
+      <i class="fas fa-barcode"></i> Scanner
+    </div>
+    <div class="aba" id="aba-matricula" onclick="mudarAba('matricula')">
+      <i class="fas fa-id-card"></i> Matrícula
+    </div>
+    <div class="aba" id="aba-turma" onclick="mudarAba('turma')">
+      <i class="fas fa-users"></i> Por Turma
+    </div>
+  </div>
+
+  <!-- ── PAINEL SCANNER ── -->
+  <div class="painel ativo" id="painel-scanner">
+    <div id="reader"></div>
+    <div id="resultado-scanner" class="info">Status: aguardando leitura...</div>
+    <div id="pcsArea-scanner" style="display:none;">
+      <div class="label-sel">PC disponível:</div>
+      <select id="pcsSelect-scanner"></select>
+      <div class="btn-linha">
+        <button class="btn-verde" onclick="liberarAluno('scanner')"><i class="fas fa-unlock"></i> LIBERAR</button>
+        <button class="btn-cinza" onclick="novaConsulta('scanner')"><i class="fas fa-redo"></i> NOVA</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PAINEL MATRÍCULA ── -->
+  <div class="painel" id="painel-matricula">
+    <input id="matricula" placeholder="Digite a matrícula" type="number">
+    <button class="btn-azul" onclick="buscarPorMatricula()">
+      <i class="fas fa-search"></i> Buscar
+    </button>
+    <div id="resultado-matricula" class="info">Status: aguardando...</div>
+    <div id="pcsArea-matricula" style="display:none;">
+      <div class="label-sel">PC disponível:</div>
+      <select id="pcsSelect-matricula"></select>
+      <div class="btn-linha">
+        <button class="btn-verde" onclick="liberarAluno('matricula')"><i class="fas fa-unlock"></i> LIBERAR</button>
+        <button class="btn-cinza" onclick="novaConsulta('matricula')"><i class="fas fa-redo"></i> NOVA</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PAINEL POR TURMA ── -->
+  <div class="painel" id="painel-turma">
+
+    <div class="label-sel">Turma:</div>
+    <select id="selTurma" onchange="carregarAlunosDaTurma()">
+      <option value="">— selecione —</option>
+      <option>1A</option><option>1B</option><option>1C</option><option>1D</option>
+      <option>2A</option><option>2B</option><option>2C</option><option>2D</option>
+      <option>3A</option><option>3B</option><option>3C</option>
+    </select>
+
+    <div class="label-sel" id="label-aluno-turma" style="display:none;">Aluno:</div>
+    <select id="selAluno" style="display:none;" onchange="selecionarAlunoDaTurma()">
+      <option value="">— selecione o aluno —</option>
+    </select>
+
+    <div id="resultado-turma" class="info" style="margin-top:10px;">
+      Selecione uma turma para começar.
+    </div>
+
+    <div id="pcsArea-turma" style="display:none;">
+      <div class="label-sel">PC disponível:</div>
+      <select id="pcsSelect-turma"></select>
+      <div class="btn-linha">
+        <button class="btn-verde" onclick="liberarAluno('turma')"><i class="fas fa-unlock"></i> LIBERAR</button>
+        <button class="btn-cinza" onclick="novaConsulta('turma')"><i class="fas fa-redo"></i> NOVA</button>
+      </div>
+    </div>
+
+  </div>
+
+</div><!-- /container -->
+
+<footer>
+  <p><i class="fas fa-school"></i> <b>EEMTI DRAGÃO DO MAR - L.E.I.</b></p>
+  <p><i class="fas fa-code"></i> By <b>D.S.Montenegro</b> <i class="fas fa-bolt"></i></p>
+</footer>
+
+<audio id="beep" preload="auto">
+  <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+
+const client = supabase.createClient(
+  "https://fwemutmkbvnriqxxufhx.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3ZW11dG1rYnZucmlxeHh1Zmh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNjM2MzMsImV4cCI6MjA4ODczOTYzM30.HCXIoI_r7_yGJntTPIizhrP4apxXV3Ahd6Jk2AkvKas"
+)
+
+// aluno atual por aba
+const alunoAtual = { scanner: null, matricula: null, turma: null }
+let lendo = false
+
+// ── ÁUDIO ──────────────────────────────────────
+function destravarAudio(){
+  const a = document.getElementById("beep")
+  a.muted = true
+  a.play().then(()=>{ a.pause(); a.currentTime=0; a.muted=false }).catch(()=>{})
+}
+
+function tocarBeep(){
+  const a = document.getElementById("beep")
+  a.muted = false; a.volume = 1; a.currentTime = 0
+  a.play().catch(()=>{})
+}
+
+// ── ABAS ───────────────────────────────────────
+function mudarAba(aba){
+  ['scanner','matricula','turma'].forEach(id=>{
+    document.getElementById('aba-'+id).classList.remove('ativa')
+    document.getElementById('painel-'+id).classList.remove('ativo')
+  })
+  document.getElementById('aba-'+aba).classList.add('ativa')
+  document.getElementById('painel-'+aba).classList.add('ativo')
+
+  if(aba === 'scanner'){
+    if(!lendo){ lendo=false; iniciarScanner() }
+  } else {
+    Quagga.stop()
+  }
+}
+
+// ── NAV ────────────────────────────────────────
+function voltar(){
+   window.location.href = "painel.html"
+}
+
+// ── SCANNER ────────────────────────────────────
+function iniciarScanner(){
+  Quagga.init({
+    inputStream:{
+      type:"LiveStream",
+      target: document.querySelector('#reader'),
+      constraints:{ facingMode:"environment", width:1280, height:720 }
+    },
+    decoder:{ readers:["code_128_reader"] }
+  }, err => {
+    if(err){ console.log(err); return }
+    Quagga.start()
+  })
+}
+
+Quagga.onDetected(async data => {
+  if(lendo) return
+  lendo = true
+  Quagga.stop()
+  tocarBeep()
+
+  const codigo = data.codeResult.code
+  const { data: aluno } = await client
+    .from("provas_alunos").select("*")
+    .eq("codigo_barras", codigo).single()
+
+  if(!aluno){
+    document.getElementById("resultado-scanner").innerHTML = "⚠️ Aluno não encontrado."
+    lendo = false; iniciarScanner(); return
+  }
+
+  processarAluno(aluno, 'scanner')
+})
+
+// ── BUSCA POR MATRÍCULA ────────────────────────
+async function buscarPorMatricula(){
+  const mat = document.getElementById("matricula").value.trim()
+  if(!mat) return
+
+  const { data: aluno } = await client
+    .from("provas_alunos").select("*")
+    .eq("matricula", mat).single()
+
+  if(!aluno){
+    document.getElementById("resultado-matricula").innerHTML = "⚠️ Aluno não encontrado."
+    return
+  }
+
+  tocarBeep()
+  lendo = true
+  Quagga.stop()
+  processarAluno(aluno, 'matricula')
+}
+
+// ── POR TURMA ──────────────────────────────────
+async function carregarAlunosDaTurma(){
+  const turma = document.getElementById("selTurma").value
+  const selAluno = document.getElementById("selAluno")
+  const labelAluno = document.getElementById("label-aluno-turma")
+
+  // Limpa estado anterior
+  selAluno.innerHTML = '<option value="">— selecione o aluno —</option>'
+  selAluno.style.display = 'none'
+  labelAluno.style.display = 'none'
+  document.getElementById("pcsArea-turma").style.display = 'none'
+  document.getElementById("resultado-turma").innerHTML = 'Selecione uma turma para começar.'
+  alunoAtual.turma = null
+
+  if(!turma) return
+
+  document.getElementById("resultado-turma").innerHTML = '<i class="fas fa-spinner fa-spin"></i> Carregando alunos...'
+
+  const { data: alunos } = await client
+    .from("provas_alunos").select("*")
+    .eq("turma", turma)
+    .order("nome", { ascending: true })
+
+  if(!alunos || alunos.length === 0){
+    document.getElementById("resultado-turma").innerHTML = '⚠️ Nenhum aluno encontrado nessa turma.'
+    return
+  }
+
+  alunos.forEach(a => {
+    const op = document.createElement("option")
+    op.value = a.id
+    op.textContent = a.nome
+    op.dataset.json = JSON.stringify(a)
+    selAluno.appendChild(op)
+  })
+
+  selAluno.style.display = 'block'
+  labelAluno.style.display = 'block'
+  document.getElementById("resultado-turma").innerHTML = `✅ ${alunos.length} alunos carregados. Selecione um.`
+}
+
+async function selecionarAlunoDaTurma(){
+  const selAluno = document.getElementById("selAluno")
+  const op = selAluno.selectedOptions[0]
+
+  document.getElementById("pcsArea-turma").style.display = 'none'
+  alunoAtual.turma = null
+  document.getElementById("resultado-turma").innerHTML = 'Selecione uma turma para começar.'
+
+  if(!op || !op.dataset.json) return
+
+  const aluno = JSON.parse(op.dataset.json)
+  tocarBeep()
+  processarAluno(aluno, 'turma')
+}
+
+// ── PROCESSAR ALUNO (comum às 3 abas) ──────────
+async function processarAluno(aluno, aba){
+  alunoAtual[aba] = aluno
+
+  document.getElementById(`resultado-${aba}`).innerHTML = `
+    <b>Aluno:</b> ${aluno.nome}<br>
+    <b>Turma:</b> ${aluno.turma}
+  `
+
+  const ano = parseInt(aluno.turma.charAt(0))
+
+  const { data: pcs } = await client
+    .from("provas_terminais").select("*")
+    .eq("status","livre")
+    .eq("ano", ano)
+
+  const pcsArea   = document.getElementById(`pcsArea-${aba}`)
+  const pcsSelect = document.getElementById(`pcsSelect-${aba}`)
+  pcsSelect.innerHTML = ""
+
+  if(!pcs || pcs.length === 0){
+    document.getElementById(`resultado-${aba}`).innerHTML +=
+      '<br>⚠️ Sem PCs disponíveis para essa série.'
+    if(aba === 'scanner'){ lendo=false; iniciarScanner() }
+    return
+  }
+
+  pcs.forEach(pc => {
+    const op = document.createElement("option")
+    op.value = pc.id
+    op.textContent = pc.nome
+    pcsSelect.appendChild(op)
+  })
+
+  pcsArea.style.display = "block"
+}
+
+// ── LIBERAR ────────────────────────────────────
+async function liberarAluno(aba){
+  const pcId = document.getElementById(`pcsSelect-${aba}`).value
+  const aluno = alunoAtual[aba]
+  if(!pcId || !aluno) return
+
+  await client.from("provas_terminais")
+    .update({ status:"ocupado", aluno_id: aluno.id })
+    .eq("id", pcId)
+
+  novaConsulta(aba)
+}
+
+// ── NOVA CONSULTA ──────────────────────────────
+function novaConsulta(aba){
+  alunoAtual[aba] = null
+  document.getElementById(`resultado-${aba}`).innerHTML = 'Status: aguardando...'
+  document.getElementById(`pcsArea-${aba}`).style.display = 'none'
+
+  if(aba === 'scanner'){
+    lendo = false
+    iniciarScanner()
+  }
+
+  if(aba === 'matricula'){
+    document.getElementById("matricula").value = ""
+  }
+
+  if(aba === 'turma'){
+    document.getElementById("selTurma").value = ""
+    document.getElementById("selAluno").innerHTML = '<option value="">— selecione o aluno —</option>'
+    document.getElementById("selAluno").style.display = 'none'
+    document.getElementById("label-aluno-turma").style.display = 'none'
+    document.getElementById("resultado-turma").innerHTML = 'Selecione uma turma para começar.'
+  }
+}
+
+// ── INIT ───────────────────────────────────────
+iniciarScanner()
+
+</script>
+</body>
+</html>
